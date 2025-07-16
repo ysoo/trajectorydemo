@@ -8,7 +8,7 @@ param aksClusterName string = 'sre-trading-aks'
 // param sqlDbName string = 'tradingdb'
 param redisName string = 'sre-trading-redis'
 // param frontDoorName string = 'sreTradingFD'
-param keyVaultName string = 'sre-trading-KV'
+param keyVaultName string = 'sre-trading-kv'
 
 // ───────────────────── Resource Group (scope) ──────────────────
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
