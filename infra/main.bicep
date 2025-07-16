@@ -3,12 +3,12 @@ targetScope = 'subscription'
 // ───────────────────────── Parameters ──────────────────────────
 param resourceGroupName string = 'sre-trading-rg'
 param location string = 'East US'
-param aksClusterName string = 'sreTradingAks'
+param aksClusterName string = 'sre-trading-aks'
 // param sqlServerName string = 'sretradingsql'
 // param sqlDbName string = 'tradingdb'
-param redisName string = 'sreTradingRedis'
+param redisName string = 'sre-trading-redis'
 // param frontDoorName string = 'sreTradingFD'
-param keyVaultName string = 'sreTradingKV'
+param keyVaultName string = 'sre-trading-KV'
 
 // ───────────────────── Resource Group (scope) ──────────────────
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {

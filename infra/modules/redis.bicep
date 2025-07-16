@@ -6,8 +6,8 @@ resource redisCache 'Microsoft.Cache/Redis@2024-11-01' = {
   name: name
   location: location
   sku: { 
-    name: 'Premium'
-    family: 'P1'
+    name: 'Standard'
+    family: 'C'
     capacity: 1
   }
   properties: {
