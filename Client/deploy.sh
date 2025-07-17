@@ -15,7 +15,8 @@ fi
 
 RESOURCE_GROUP=$1
 ACR_NAME=$2
-IMAGE_TAG=${3:-latest}
+# Generate unique tag if none provided (timestamp-based)
+IMAGE_TAG=${3:-"v$(date +%Y%m%d-%H%M%S)"}
 
 echo "🚀 Deploying Web UI to existing Azure resources..."
 echo "   Resource Group: $RESOURCE_GROUP"
@@ -45,16 +46,13 @@ echo "✅ Image pushed to ACR"
 echo "📝 Preparing Kubernetes deployment..."
 cp k8s/web-ui-deployment.yaml k8s/web-ui-deployment-temp.yaml
 
-# Update ACR image reference
-echo "🔧 Updating ACR image reference..."
-# Escape forward slashes in ACR_LOGIN_SERVER for sed
-ACR_ESCAPED=$(echo "$ACR_LOGIN_SERVER" | sed 's/\//\\\//g')
-sed -i "s/sretradingdemoacr\.azurecr\.io/$ACR_ESCAPED/g" k8s/web-ui-deployment-temp.yaml
+# Replace ACR server placeholder
+echo "🔧 Updating ACR server..."
+sed -i "s|<ACR_SERVER>|$ACR_LOGIN_SERVER|g" k8s/web-ui-deployment-temp.yaml
 
-# Update image tag if not latest
-if [ "$IMAGE_TAG" != "latest" ]; then
-    sed -i "s/:1\.0\.0/:$IMAGE_TAG/g" k8s/web-ui-deployment-temp.yaml
-fi
+# Replace image tag placeholder
+echo "🔧 Updating image tag..."
+sed -i "s|<IMAGE_TAG>|$IMAGE_TAG|g" k8s/web-ui-deployment-temp.yaml
 
 echo "✅ Configuration updated"
 
@@ -62,12 +60,16 @@ echo "✅ Configuration updated"
 echo "🚀 Deploying to Kubernetes..."
 kubectl apply -f k8s/web-ui-deployment-temp.yaml
 
+# Force rollout restart to ensure new image is pulled
+echo "🔄 Forcing deployment rollout restart..."
+kubectl rollout restart deployment/web-ui
+
 # Clean up temporary file
 rm k8s/web-ui-deployment-temp.yaml
 
 # Wait for deployment
-echo "⏳ Waiting for deployment to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/web-ui
+echo "⏳ Waiting for rollout to complete..."
+kubectl rollout status deployment/web-ui --timeout=300s
 
 # Show status
 echo ""
@@ -75,6 +77,10 @@ echo "✅ Deployment completed successfully!"
 echo ""
 echo "📊 Deployment Status:"
 kubectl get pods -l app=web-ui
+echo ""
+echo "🏷️  Current Image:"
+kubectl get deployment web-ui -o jsonpath='{.spec.template.spec.containers[0].image}'
+echo ""
 echo ""
 echo "🌐 Service Details:"
 kubectl get service web-ui-svc

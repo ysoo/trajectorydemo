@@ -9,6 +9,13 @@ export interface Stock {
   high: number;
   low: number;
   open: number;
+  history?: PricePoint[];
+}
+
+export interface PricePoint {
+  time: string;
+  price: number;
+  timestamp: number;
 }
 
 export interface NewsItem {

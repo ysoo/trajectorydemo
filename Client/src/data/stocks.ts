@@ -1,4 +1,57 @@
-import { Stock, NewsItem } from '../types/stock';
+import { Stock, NewsItem, PricePoint } from '../types/stock';
+
+// Generate historical price data for a stock
+const generateHistory = (currentPrice: number, symbol: string, points: number = 30): PricePoint[] => {
+  const history: PricePoint[] = [];
+  const now = Date.now();
+  const interval = 2000; // 2 seconds between points
+  
+  let price = currentPrice * 0.95; // Start 5% lower
+  
+  for (let i = 0; i < points; i++) {
+    const timestamp = now - (points - i) * interval;
+    const time = new Date(timestamp).toLocaleTimeString('en-US', { hour12: false });
+    
+    // Different volatility patterns for different stocks
+    let volatility = 0.002; // Default 0.2%
+    let trend = 0;
+    
+    switch (symbol) {
+      case 'NVDA':
+        volatility = 0.004; // More volatile
+        trend = 0.001; // Upward trend
+        break;
+      case 'TSLA':
+        volatility = 0.005; // Very volatile
+        trend = -0.0005; // Slight downward trend
+        break;
+      case 'ARKG':
+        volatility = 0.003;
+        trend = -0.002; // Strong downward trend
+        break;
+      case 'PLTR':
+        volatility = 0.0035;
+        trend = 0.0008; // Upward trend
+        break;
+      case 'MSFT':
+        volatility = 0.0025; // More stable
+        trend = 0.0005; // Steady upward
+        break;
+    }
+    
+    // Random walk with trend
+    const change = (Math.random() - 0.5) * volatility + trend;
+    price = Math.max(0.01, price * (1 + change));
+    
+    history.push({
+      time,
+      price: Math.round(price * 100) / 100,
+      timestamp
+    });
+  }
+  
+  return history;
+};
 
 export const initialStocks: Stock[] = [
   {
@@ -11,7 +64,8 @@ export const initialStocks: Stock[] = [
     marketCap: '2.85T',
     high: 386.95,
     low: 378.21,
-    open: 380.15
+    open: 380.15,
+    history: generateHistory(384.52, 'MSFT')
   },
   {
     symbol: 'NVDA',
@@ -23,7 +77,8 @@ export const initialStocks: Stock[] = [
     marketCap: '2.21T',
     high: 895.33,
     low: 867.45,
-    open: 875.20
+    open: 875.20,
+    history: generateHistory(892.87, 'NVDA')
   },
   {
     symbol: 'TSLA',
@@ -35,7 +90,8 @@ export const initialStocks: Stock[] = [
     marketCap: '792.3B',
     high: 255.73,
     low: 246.12,
-    open: 252.45
+    open: 252.45,
+    history: generateHistory(248.91, 'TSLA')
   },
   {
     symbol: 'PLTR',
@@ -47,7 +103,8 @@ export const initialStocks: Stock[] = [
     marketCap: '58.2B',
     high: 27.15,
     low: 25.67,
-    open: 26.01
+    open: 26.01,
+    history: generateHistory(26.84, 'PLTR')
   },
   {
     symbol: 'ARKG',
@@ -59,7 +116,8 @@ export const initialStocks: Stock[] = [
     marketCap: '1.2B',
     high: 19.45,
     low: 18.12,
-    open: 20.15
+    open: 20.15,
+    history: generateHistory(18.34, 'ARKG')
   }
 ];
 

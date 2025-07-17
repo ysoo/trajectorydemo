@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import StockTicker from './StockTicker';
 import NewsScroller from './NewsScroller';
 import MarketSummary from './MarketSummary';
-import { Stock } from '../types/stock';
+import { Stock, PricePoint } from '../types/stock';
 import { initialStocks, newsItems } from '../data/stocks';
 
 const Dashboard: React.FC = () => {
-  const [stocks, setStocks] = useState<Stock[]>(initialStocks);
+  // Initialize stocks with empty history
+  const [stocks, setStocks] = useState<Stock[]>(() => 
+    initialStocks.map(stock => ({
+      ...stock,
+      history: [{
+        time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        price: stock.price,
+        timestamp: Date.now()
+      }]
+    }))
+  );
   const [flashingStocks, setFlashingStocks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -21,6 +31,16 @@ const Dashboard: React.FC = () => {
             const newChange = newPrice - stock.open;
             const newChangePercent = (newChange / stock.open) * 100;
             
+            // Create new price point
+            const newPricePoint: PricePoint = {
+              time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+              price: newPrice,
+              timestamp: Date.now()
+            };
+
+            // Update history (keep last 50 points)
+            const updatedHistory = [...(stock.history || []), newPricePoint].slice(-50);
+            
             // Special case for ARKG - always trending down
             if (stock.symbol === 'ARKG') {
               const arkgChange = Math.random() * -2; // Always negative
@@ -28,13 +48,22 @@ const Dashboard: React.FC = () => {
               const arkgNewChange = arkgNewPrice - stock.open;
               const arkgNewChangePercent = (arkgNewChange / stock.open) * 100;
               
+              const arkgPricePoint: PricePoint = {
+                time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                price: arkgNewPrice,
+                timestamp: Date.now()
+              };
+
+              const arkgHistory = [...(stock.history || []), arkgPricePoint].slice(-50);
+              
               return {
                 ...stock,
                 price: arkgNewPrice,
                 change: arkgNewChange,
                 changePercent: arkgNewChangePercent,
                 high: Math.max(stock.high, arkgNewPrice),
-                low: Math.min(stock.low, arkgNewPrice)
+                low: Math.min(stock.low, arkgNewPrice),
+                history: arkgHistory
               };
             }
             
@@ -44,7 +73,8 @@ const Dashboard: React.FC = () => {
               change: newChange,
               changePercent: newChangePercent,
               high: Math.max(stock.high, newPrice),
-              low: Math.min(stock.low, newPrice)
+              low: Math.min(stock.low, newPrice),
+              history: updatedHistory
             };
           }
           

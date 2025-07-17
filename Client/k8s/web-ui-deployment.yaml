@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: web-ui
-          image: sretradingdemoacr.azurecr.io/trading-web-ui:1.0.0
+          image: <ACR_SERVER>/trading-web-ui:<IMAGE_TAG>
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:
@@ -38,6 +39,11 @@ spec:
               port: 80
             initialDelaySeconds: 15
             periodSeconds: 20
+          env:
+            - name: VITE_QUOTE_API_BASE_URL
+              value: "http://quote-api-service.quote-api.svc.cluster.local"
+            - name: VITE_QUOTE_API_WS_URL
+              value: "ws://quote-api-service.quote-api.svc.cluster.local/ws"
 ---
 apiVersion: v1
 kind: Service
