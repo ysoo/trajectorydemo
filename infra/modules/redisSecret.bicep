@@ -3,6 +3,7 @@
 param keyVaultName string
 param redisName string
 param secretName string
+param databaseNumber int = 0
 
 @description('Deploy the Redis connection secret if it does not exist')
 param deploySecret bool = true
@@ -21,7 +22,8 @@ resource redisConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = 
   parent: kv
   name: secretName
   properties: {
-    value: '${redis.properties.hostName}:6380,password=${redis.listKeys().primaryKey},ssl=True,abortConnect=False'
+    value: 'rediss://:${redis.listKeys().primaryKey}@${redis.properties.hostName}:6380/${databaseNumber}'
+    contentType: 'application/x-redis-url'
   }
 }
 

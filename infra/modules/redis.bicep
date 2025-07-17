@@ -12,8 +12,8 @@ resource redisCache 'Microsoft.Cache/Redis@2024-11-01' = if (deployRedis) {
     enableNonSslPort: false
     minimumTlsVersion: '1.2'
     sku: { 
-      name: 'Standard'
-      family: 'C'
+      name: 'Premium'
+      family: 'P'
       capacity: 1
     }
   }
