@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName": {
+      "value": "sre-trading-rg"
+    },
+    "location": {
+      "value": "East US"
+    },
+    "aksClusterName": {
+      "value": "sre-trading-aks"
+    },
+    "redisName": {
+      "value": "sre-trading-redis"
+    },
+    "keyVaultName": {
+      "value": "sre-trading-kv"
+    },
+    "_comment_conditional_deployment": "Set these to false to skip deployment of existing resources",
+    "deployResourceGroup": {
+      "value": true
+    },
+    "deployRedis": {
+      "value": true
+    },
+    "deployAks": {
+      "value": true
+    },
+    "deployKeyVault": {
+      "value": true
+    },
+    "deployIdentities": {
+      "value": true
+    },
+    "deployRedisSecret": {
+      "value": true
+    },
+    "deployRoleAssignments": {
+      "value": true
+    }
+  }
+} 

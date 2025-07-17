@@ -2,7 +2,10 @@
 param name string
 param location string
 
-resource redisCache 'Microsoft.Cache/Redis@2024-11-01' = {
+@description('Deploy the Redis cache if it does not exist')
+param deployRedis bool = true
+
+resource redisCache 'Microsoft.Cache/Redis@2024-11-01' = if (deployRedis) {
   name: name
   location: location
   properties: {
@@ -16,5 +19,10 @@ resource redisCache 'Microsoft.Cache/Redis@2024-11-01' = {
   }
 }
 
-output hostName string = redisCache.properties.hostName
+// Reference existing Redis if not deploying a new one
+resource existingRedis 'Microsoft.Cache/Redis@2024-11-01' existing = if (!deployRedis) {
+  name: name
+}
+
+output hostName string = deployRedis ? redisCache.properties.hostName : existingRedis.properties.hostName
 

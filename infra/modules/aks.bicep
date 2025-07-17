@@ -12,8 +12,11 @@ param nodeVmSize    string = 'Standard_D4s_v5'
 ])
 param networkPlugin string = 'azure'
 
+@description('Deploy the AKS cluster if it does not exist')
+param deployAks bool = true
+
 // AKS managed cluster
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
+resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = if (deployAks) {
   name:     name
   location: location
   sku: {
@@ -49,6 +52,11 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
   }
 }
 
+// Reference existing AKS cluster if not deploying a new one
+resource existingAks 'Microsoft.ContainerService/managedClusters@2023-03-01' existing = if (!deployAks) {
+  name: name
+}
+
 // Outputs
-output clusterName  string = aksCluster.name
-output principalId  string = aksCluster.identity.principalId   // useful for RBAC or ACR pull access
+output clusterName  string = deployAks ? aksCluster.name : existingAks.name
+output principalId  string = deployAks ? aksCluster.identity.principalId : existingAks.identity.principalId   // useful for RBAC or ACR pull access
