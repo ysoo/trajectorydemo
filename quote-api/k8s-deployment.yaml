@@ -53,6 +53,7 @@ spec:
       containers:
       - name: quote-api
         image: <YOUR_ACR_LOGIN_SERVER>/quote-api:latest  # Replace with your ACR image
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           name: http
@@ -137,6 +138,26 @@ spec:
     targetPort: 8080
     protocol: TCP
   type: ClusterIP
+
+---
+# External LoadBalancer service for client access
+apiVersion: v1
+kind: Service
+metadata:
+  name: quote-api-external
+  namespace: quote-api
+  labels:
+    app: quote-api
+    version: v1.0.0
+spec:
+  selector:
+    app: quote-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: LoadBalancer
 
 ---
 apiVersion: autoscaling/v2

@@ -16,7 +16,7 @@ fi
 RESOURCE_GROUP=$1
 ACR_NAME=$2
 # Generate unique tag if none provided (timestamp-based)
-IMAGE_TAG=${3:-"v$(date +%Y%m%d-%H%M%S)"}
+IMAGE_TAG=${3:-"v2.0.0"}
 
 echo "🚀 Deploying Web UI to existing Azure resources..."
 echo "   Resource Group: $RESOURCE_GROUP"
@@ -35,8 +35,8 @@ az acr login --name $ACR_NAME
 
 # Build with environment variables for production
 docker build \
-  --build-arg VITE_QUOTE_API_BASE_URL=http://quote-api-service.quote-api.svc.cluster.local \
-  --build-arg VITE_QUOTE_API_WS_URL=ws://quote-api-service.quote-api.svc.cluster.local/ws \
+  --build-arg VITE_QUOTE_API_BASE_URL=http://20.236.212.26 \
+  --build-arg VITE_QUOTE_API_WS_URL=ws://20.236.212.26/ws \
   -t $ACR_LOGIN_SERVER/trading-web-ui:$IMAGE_TAG .
 
 docker push $ACR_LOGIN_SERVER/trading-web-ui:$IMAGE_TAG

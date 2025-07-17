@@ -4,6 +4,7 @@ metadata:
   name: web-ui
   labels:
     app: web-ui
+    version: v2.0.0
 spec:
   replicas: 2
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         app: web-ui
+        version: v2.0.0
     spec:
       containers:
         - name: web-ui
@@ -41,14 +43,17 @@ spec:
             periodSeconds: 20
           env:
             - name: VITE_QUOTE_API_BASE_URL
-              value: "http://quote-api-service.quote-api.svc.cluster.local"
+              value: "http://20.236.212.26"
             - name: VITE_QUOTE_API_WS_URL
-              value: "ws://quote-api-service.quote-api.svc.cluster.local/ws"
+              value: "ws://20.236.212.26/ws"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: web-ui-svc
+  labels:
+    app: web-ui
+    version: v2.0.0
 spec:
   selector:
     app: web-ui

@@ -70,6 +70,10 @@ echo "✅ Configuration updated"
 echo "🚀 Deploying to Kubernetes..."
 kubectl apply -f k8s-deployment-temp.yaml
 
+# Force rollout restart to ensure new image is pulled
+echo "🔄 Forcing deployment rollout restart..."
+kubectl rollout restart deployment/quote-api -n quote-api
+
 # Clean up temporary file
 rm k8s-deployment-temp.yaml
 
@@ -98,3 +102,9 @@ echo "   # Inside pod: curl http://quote-api-service.quote-api.svc.cluster.local
 echo ""
 echo "📈 Monitor HPA:"
 echo "   kubectl get hpa quote-api-hpa -n quote-api --watch" 
+
+# Build and deploy with external IP
+./deploy.sh <resource-group> <acr-name> v2.1.0
+
+# Then access via port-forward or ingress
+kubectl port-forward service/web-ui-svc 8080:80
