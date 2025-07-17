@@ -43,9 +43,9 @@ spec:
             periodSeconds: 20
           env:
             - name: VITE_QUOTE_API_BASE_URL
-              value: "http://20.236.212.26"
+              value: "http://quote-api-service.quote-api.svc.cluster.local"
             - name: VITE_QUOTE_API_WS_URL
-              value: "ws://20.236.212.26/ws"
+              value: "ws://quote-api-service.quote-api.svc.cluster.local/ws"
 ---
 apiVersion: v1
 kind: Service

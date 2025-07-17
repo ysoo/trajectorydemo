@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import websocket from "@fastify/websocket";
+import cors from "@fastify/cors";
 import { marketDataProvider } from "./marketDataProvider.js";
 import { 
   publishQuote, 
@@ -17,6 +18,23 @@ const PORT = process.env.PORT ? +process.env.PORT : 8080;
 const TICK_MS = parseInt(process.env.TICK_MS || "5000"); // 5 seconds for real data (less frequent)
 
 const app = Fastify({ logger: true });
+
+// Register CORS plugin to allow cross-origin requests
+await app.register(cors, {
+  // Allow all origins in development, specific origins in production
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        /^https?:\/\/.*\.azurewebsites\.net$/,  // Azure Web Apps
+        /^https?:\/\/.*\.azurecontainer\.io$/,  // Azure Container Instances
+        /^https?:\/\/localhost(:\d+)?$/,        // Local development
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/,     // Local development
+      ]
+    : true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+});
+
 await app.register(websocket);
 
 // REST endpoint - Get current quote

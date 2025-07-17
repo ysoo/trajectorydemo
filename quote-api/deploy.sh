@@ -101,10 +101,17 @@ echo "   kubectl run test-pod --image=curlimages/curl --rm -it --restart=Never -
 echo "   # Inside pod: curl http://quote-api-service.quote-api.svc.cluster.local/health"
 echo ""
 echo "📈 Monitor HPA:"
-echo "   kubectl get hpa quote-api-hpa -n quote-api --watch" 
-
-# Build and deploy with external IP
-./deploy.sh <resource-group> <acr-name> v2.1.0
-
-# Then access via port-forward or ingress
-kubectl port-forward service/web-ui-svc 8080:80
+echo "   kubectl get hpa quote-api-hpa -n quote-api --watch"
+echo ""
+echo "🌐 External Access:"
+kubectl get service quote-api-external -n quote-api
+echo ""
+echo "🔌 For local development (port forwarding):"
+echo "   kubectl port-forward service/quote-api-service 8080:80 -n quote-api"
+echo "   # Then use: http://localhost:8080"
+echo ""
+echo "🔗 External LoadBalancer URL:"
+EXTERNAL_IP=$(kubectl get service quote-api-external -n quote-api -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending...")
+echo "   REST API: http://$EXTERNAL_IP/v1/quotes?symbol=MSFT"
+echo "   WebSocket: ws://$EXTERNAL_IP/ws"
+echo "   Health: http://$EXTERNAL_IP/health"
