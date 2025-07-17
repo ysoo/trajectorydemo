@@ -30,6 +30,7 @@ const redisConfig = {
 };
 
 export const redis = new Redis(redisUrl, redisConfig);
+await redis.connect();
 
 // Add connection event listeners
 redis.on('connect', () => {
@@ -56,7 +57,7 @@ export async function publishQuote(q: Quote) {
   try {
     // Ensure connection is ready
     if (redis.status !== 'ready') {
-      await redis.connect();
+      throw new Error('Redis connection is not ready');
     }
     
     // Store current quote with 60-second TTL for REST API lookups
@@ -146,6 +147,8 @@ export async function getQuoteWithHistory(symbol: string): Promise<QuoteWithHist
 
 export async function subscribeToQuotes(onQuote: (quote: Quote) => void): Promise<Redis> {
   const subscriber = new Redis(redisUrl, redisConfig);
+  await subscriber.connect();
+  console.log('Redis subscriber connected');
   
   subscriber.on("message", (channel, message) => {
     if (channel === "quotes") {

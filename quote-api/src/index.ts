@@ -28,6 +28,7 @@ await app.register(cors, {
         /^https?:\/\/.*\.azurecontainer\.io$/,  // Azure Container Instances
         /^https?:\/\/localhost(:\d+)?$/,        // Local development
         /^https?:\/\/127\.0\.0\.1(:\d+)?$/,     // Local development
+        /^http?:\/\/52\.158\.166\.7(:\d+)?$/,     // Frontend server IP
       ]
     : true, // Allow all origins in development
   credentials: true,
