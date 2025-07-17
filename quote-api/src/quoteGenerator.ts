@@ -1,6 +1,6 @@
 import type { Quote, HistoricalQuote } from "./types.js";
 
-const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG"];
+const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 
 // Real market closing prices for reference (you can update these periodically)
 const REFERENCE_PRICES: Record<string, number> = {
@@ -8,7 +8,10 @@ const REFERENCE_PRICES: Record<string, number> = {
   NVDA: 892.87,
   TSLA: 248.91,
   PLTR: 26.84,
-  ARKG: 18.34
+  ARKG: 18.34,
+  SPY: 472.35,   // S&P 500 ETF
+  META: 512.78,  // Meta Platforms
+  GOOGL: 175.43  // Alphabet Class A
 };
 
 // Market state tracking for realistic behavior
@@ -33,6 +36,9 @@ function getVolatilityForSymbol(symbol: string): number {
     case "PLTR": return 0.028; // High growth stock volatility
     case "ARKG": return 0.022; // ETF volatility
     case "MSFT": return 0.015; // Lower volatility blue chip
+    case "SPY": return 0.012;  // Low volatility S&P 500 ETF
+    case "META": return 0.024; // High volatility tech stock
+    case "GOOGL": return 0.020; // Moderate volatility tech giant
     default: return 0.020;
   }
 }

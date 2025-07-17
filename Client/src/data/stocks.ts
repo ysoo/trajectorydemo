@@ -118,6 +118,45 @@ export const initialStocks: Stock[] = [
     low: 18.12,
     open: 20.15,
     history: generateHistory(18.34, 'ARKG')
+  },
+  {
+    symbol: 'SPY',
+    name: 'SPDR S&P 500 ETF Trust',
+    price: 472.35,
+    change: 2.18,
+    changePercent: 0.46,
+    volume: '45.2M',
+    marketCap: '512.8B',
+    high: 474.12,
+    low: 469.87,
+    open: 471.05,
+    history: generateHistory(472.35, 'SPY')
+  },
+  {
+    symbol: 'META',
+    name: 'Meta Platforms, Inc.',
+    price: 512.78,
+    change: 15.43,
+    changePercent: 3.10,
+    volume: '19.7M',
+    marketCap: '1.29T',
+    high: 516.45,
+    low: 505.23,
+    open: 508.90,
+    history: generateHistory(512.78, 'META')
+  },
+  {
+    symbol: 'GOOGL',
+    name: 'Alphabet Inc. Class A',
+    price: 175.43,
+    change: 3.21,
+    changePercent: 1.86,
+    volume: '28.9M',
+    marketCap: '2.12T',
+    high: 177.85,
+    low: 173.12,
+    open: 174.50,
+    history: generateHistory(175.43, 'GOOGL')
   }
 ];
 

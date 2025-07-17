@@ -10,7 +10,7 @@ A real-time price publisher that streams **live stock market quotes** from Yahoo
 - 🚀 **Ultra-fast REST snapshots** - GET /v1/quotes?symbol=MSFT with Redis caching
 - 📈 **Historical Data** - 1-day historical data for charting
 - 📡 **Redis Pub/Sub architecture** - Scalable message distribution
-- 🎯 **Multiple symbols** - MSFT, NVDA, TSLA, PLTR, ARKG
+- 🎯 **Multiple symbols** - MSFT, NVDA, TSLA, PLTR, ARKG, SPY, META, GOOGL
 - 🔧 **Auto-recovery** - Automatic switching between real and fallback data
 - 🐳 **Docker support** - Easy deployment with Docker Compose
 

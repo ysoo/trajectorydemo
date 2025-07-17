@@ -20,10 +20,13 @@ const STOCK_METADATA: Record<string, StockMetadata> = {
   NVDA: { symbol: 'NVDA', name: 'NVIDIA Corporation', marketCap: '2.21T' },
   TSLA: { symbol: 'TSLA', name: 'Tesla, Inc.', marketCap: '792.3B' },
   PLTR: { symbol: 'PLTR', name: 'Palantir Technologies', marketCap: '58.2B' },
-  ARKG: { symbol: 'ARKG', name: 'ARK Genomic Revolution ETF', marketCap: '1.2B' }
+  ARKG: { symbol: 'ARKG', name: 'ARK Genomic Revolution ETF', marketCap: '1.2B' },
+  SPY: { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', marketCap: '512.8B' },
+  META: { symbol: 'META', name: 'Meta Platforms, Inc.', marketCap: '1.29T' },
+  GOOGL: { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', marketCap: '2.12T' }
 };
 
-const TRACKED_SYMBOLS = ['MSFT', 'NVDA', 'TSLA', 'PLTR', 'ARKG'];
+const TRACKED_SYMBOLS = ['MSFT', 'NVDA', 'TSLA', 'PLTR', 'ARKG', 'SPY', 'META', 'GOOGL'];
 
 // Utility functions
 function formatVolume(volume?: number): string {

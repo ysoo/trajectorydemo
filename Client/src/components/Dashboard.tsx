@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StockTicker from './StockTicker';
-import NewsScroller from './NewsScroller';
 import MarketSummary from './MarketSummary';
 import { Stock, ConnectionStatus } from '../types/stock';
-import { newsItems } from '../data/stocks';
 import { quoteApiService } from '../services/quoteApi';
 import { addPricePointToHistory } from '../utils/stockUtils';
 
@@ -221,10 +219,10 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <div className="flex-1 p-3 space-y-3">
         {/* Connection Status Indicator */}
-        <div className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg p-3">
+        <div className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg p-2">
           <div className="flex items-center space-x-3">
             <div 
               className={`w-3 h-3 rounded-full ${
@@ -246,11 +244,11 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Market Summary */}
+        {/* Market Summary - Compact */}
         <MarketSummary />
         
-        {/* Stock Tickers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Stock Tickers Grid - Optimized for 8 tickers and maximum screen usage */}
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 content-start">
           {stocks.map((stock) => (
             <StockTicker
               key={stock.symbol}
@@ -262,7 +260,7 @@ const Dashboard: React.FC = () => {
 
         {/* Show message if no stocks loaded */}
         {stocks.length === 0 && !loading && (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="text-gray-400 text-4xl mb-4">📊</div>
             <h3 className="text-lg font-mono text-gray-400">No Stock Data Available</h3>
             <p className="text-sm text-gray-500 font-mono mt-2">
@@ -276,9 +274,6 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         )}
-        
-        {/* News Section */}
-        <NewsScroller newsItems={newsItems} />
       </div>
     </div>
   );

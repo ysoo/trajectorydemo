@@ -2,7 +2,7 @@ import yahooFinance from 'yahoo-finance2';
 import type { Quote, HistoricalQuote, QuoteWithHistory, MarketDataCache } from './types.js';
 import { generateFallbackQuote, generateFallbackHistory } from './quoteGenerator.js';
 
-const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG"];
+const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 const CACHE_TTL_MINUTES = 1; // Cache quotes for 1 minute
 const HISTORY_CACHE_TTL_MINUTES = 15; // Cache historical data for 15 minutes
 const MAX_RETRIES = 3;
