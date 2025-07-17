@@ -16,19 +16,12 @@ data:
   PORT: "8080"
   NODE_ENV: "production"
   TICK_MS: "500"
+  # Key Vault configuration
+  AZURE_KEY_VAULT_URL: "https://sre-trading-kv.vault.azure.net/"
+  REDIS_SECRET_NAME: "redis-connection-string"
 
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: quote-api-secret
-  namespace: quote-api
-type: Opaque
-data:
-  # Base64 encoded Redis connection string for Azure Redis Cache
-  # Example format: redis://:<password>@<redis-name>.redis.cache.windows.net:6380/0?ssl=true
-  # To encode: echo -n "your-azure-redis-connection-string" | base64
-  REDIS_CONNECTION_STRING: <BASE64_ENCODED_AZURE_REDIS_CONNECTION_STRING>
+# Secret removed - Redis connection string will be retrieved from Key Vault
 
 ---
 apiVersion: apps/v1
@@ -49,7 +42,9 @@ spec:
       labels:
         app: quote-api
         version: v1.0.0
+        azure.workload.identity/use: "true"  # Enable workload identity
     spec:
+      serviceAccountName: quote-api-sa  # Service account with managed identity
       containers:
       - name: quote-api
         image: <YOUR_ACR_LOGIN_SERVER>/quote-api:latest  # Replace with your ACR image
@@ -74,11 +69,19 @@ spec:
             configMapKeyRef:
               name: quote-api-config
               key: TICK_MS
-        - name: REDIS_CONNECTION_STRING
+        - name: AZURE_KEY_VAULT_URL
           valueFrom:
-            secretKeyRef:
-              name: quote-api-secret
-              key: REDIS_CONNECTION_STRING
+            configMapKeyRef:
+              name: quote-api-config
+              key: AZURE_KEY_VAULT_URL
+        - name: REDIS_SECRET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: quote-api-config
+              key: REDIS_SECRET_NAME
+        # Azure managed identity environment variables
+        - name: AZURE_CLIENT_ID
+          value: "$(QUOTE_API_IDENTITY_CLIENT_ID)"  # Will be set by managed identity
         resources:
           requests:
             memory: "128Mi"
@@ -213,4 +216,15 @@ spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: quote-api 
+      app: quote-api
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quote-api-sa
+  namespace: quote-api
+  annotations:
+    azure.workload.identity/client-id: "$(QUOTE_API_IDENTITY_CLIENT_ID)"  # Will be replaced during deployment
+  labels:
+    azure.workload.identity/use: "true" 

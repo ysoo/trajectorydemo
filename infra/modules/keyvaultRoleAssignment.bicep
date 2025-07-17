@@ -1,21 +1,31 @@
 // modules/keyvaultRoleAssignment.bicep
-// Assigns a role on a Key Vault to a managed identity (or other principal).
+// Assigns a role on a Key Vault to a managed identity (or other principal).
 
-param principalName        string            // used as deterministic GUID seed
-param principalId          string
-param keyVaultResourceId   string            // full KV resourceId
+param principalName string
+param principalId string
+param keyVaultResourceId string
+param roleDefinitionResourceId string
 
-@description('Full resourceId of the role definition, e.g. subscriptionResourceId("Microsoft.Authorization/roleDefinitions", guid)')
-param roleDefinitionResourceId string = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '4633458b-17de-408a-b874-0445c86b69e6'     // Key Vault Secrets User by default
-)
+@description('Deploy the role assignment if it does not exist')
+param deployRoleAssignment bool = true
 
-resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVaultResourceId, principalName, roleDefinitionResourceId)  // deterministic
+// Extract Key Vault name from the resource ID
+var keyVaultName = split(keyVaultResourceId, '/')[8]
+
+// Reference the existing Key Vault
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+  name: keyVaultName
+}
+
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployRoleAssignment) {
+  name: guid(keyVaultResourceId, principalId, roleDefinitionResourceId)
+  scope: keyVault
   properties: {
+    principalId: principalId
     roleDefinitionId: roleDefinitionResourceId
-    principalId:      principalId
-    principalType:    'ServicePrincipal'
+    principalType: 'ServicePrincipal'
   }
 }
+
+output assignmentId string = deployRoleAssignment ? roleAssignment.id : 'role-assignment-skipped'
+output assignmentName string = deployRoleAssignment ? roleAssignment.name : 'role-assignment-skipped'

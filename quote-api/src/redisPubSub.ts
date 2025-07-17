@@ -1,7 +1,9 @@
 import Redis from "ioredis";
+import { getRedisConnectionString } from "./keyVaultClient.js";
 import type { Quote, HistoricalQuote, QuoteWithHistory } from "./types.js";
 
-const redisUrl = process.env.REDIS_CONNECTION_STRING || "redis://localhost:6379";
+// Get Redis connection string from Key Vault
+const redisUrl = await getRedisConnectionString();
 
 // Azure Redis specific configuration
 const redisConfig = {

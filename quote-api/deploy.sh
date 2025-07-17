@@ -1,38 +1,25 @@
 #!/bin/bash
 
 # Quote API Deployment Script for Existing Azure Resources
-# Usage: ./deploy.sh <resource-group> <acr-name> <redis-name>
+# Usage: ./deploy.sh <resource-group> <acr-name>
 
 set -e
 
 # Check arguments
-if [ $# -ne 3 ]; then
-    echo "Usage: ./deploy.sh <resource-group> <acr-name> <redis-name>"
-    echo "Example: ./deploy.sh my-rg my-acr my-redis"
+if [ $# -ne 2 ]; then
+    echo "Usage: ./deploy.sh <resource-group> <acr-name>"
+    echo "Example: ./deploy.sh my-rg my-acr"
     exit 1
 fi
 
 RESOURCE_GROUP=$1
 ACR_NAME=$2
-REDIS_NAME=$3
 
 echo "🚀 Deploying Quote API to existing Azure resources..."
 echo "   Resource Group: $RESOURCE_GROUP"
 echo "   ACR: $ACR_NAME"
-echo "   Redis: $REDIS_NAME"
+echo "   Redis connection: Retrieved from Key Vault"
 echo ""
-
-# Get Redis connection details
-echo "📡 Getting Redis connection details..."
-REDIS_HOSTNAME=$(az redis show --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query hostName --output tsv)
-REDIS_SSL_PORT=$(az redis show --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query sslPort --output tsv)
-REDIS_ACCESS_KEY=$(az redis list-keys --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query primaryKey --output tsv)
-
-# Construct Redis connection string
-REDIS_CONNECTION_STRING="redis://:$REDIS_ACCESS_KEY@$REDIS_HOSTNAME:$REDIS_SSL_PORT/0?ssl=true"
-REDIS_CONNECTION_STRING_B64=$(echo -n "$REDIS_CONNECTION_STRING" | base64 | tr -d '\n')
-
-echo "✅ Redis connection configured"
 
 # Get ACR login server
 echo "🐳 Getting ACR details..."
@@ -56,13 +43,17 @@ echo "🔧 Updating ACR image..."
 ACR_ESCAPED=$(echo "$ACR_LOGIN_SERVER" | sed 's/\//\\\//g')
 sed -i "s/<YOUR_ACR_LOGIN_SERVER>/$ACR_ESCAPED/g" k8s-deployment-temp.yaml
 
-echo "🔧 Updating Redis connection..."
-# Use printf to handle special characters in base64 string
-printf '%s\n' "g/<BASE64_ENCODED_AZURE_REDIS_CONNECTION_STRING>/s//<BASE64_ENCODED_AZURE_REDIS_CONNECTION_STRING>/$REDIS_CONNECTION_STRING_B64/g" | sed -i -f - k8s-deployment-temp.yaml 2>/dev/null || {
-    # Fallback method using awk
-    awk -v old="<BASE64_ENCODED_AZURE_REDIS_CONNECTION_STRING>" -v new="$REDIS_CONNECTION_STRING_B64" 'gsub(old,new)1' k8s-deployment-temp.yaml > k8s-deployment-temp2.yaml
-    mv k8s-deployment-temp2.yaml k8s-deployment-temp.yaml
-}
+# Get the managed identity client ID from Azure
+echo "🔧 Getting managed identity information..."
+QUOTE_IDENTITY_CLIENT_ID=$(az identity show --name "sre-trading-aks-quote-identity" --resource-group "$RESOURCE_GROUP" --query clientId -o tsv 2>/dev/null || echo "")
+
+if [ -n "$QUOTE_IDENTITY_CLIENT_ID" ]; then
+    echo "🔧 Updating managed identity client ID..."
+    sed -i "s/\$(QUOTE_API_IDENTITY_CLIENT_ID)/$QUOTE_IDENTITY_CLIENT_ID/g" k8s-deployment-temp.yaml
+    echo "✅ Managed identity configured: $QUOTE_IDENTITY_CLIENT_ID"
+else
+    echo "⚠️  Warning: Could not retrieve managed identity client ID. Workload identity may not work."
+fi
 
 echo "✅ Configuration updated"
 

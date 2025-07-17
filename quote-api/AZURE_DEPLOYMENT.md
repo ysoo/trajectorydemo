@@ -1,41 +1,47 @@
 # Azure Kubernetes Service (AKS) Deployment Guide
 
-This guide walks you through deploying the Quote API to an existing Azure Kubernetes Service (AKS) cluster with Azure Redis Cache integration. The Quote API will be accessible internally within the cluster for frontend UI pods.
+This guide walks you through deploying the Quote API to an existing Azure Kubernetes Service (AKS) cluster with Azure Key Vault and Redis Cache integration. The Quote API securely retrieves configuration from Key Vault using managed identity.
 
 ## Prerequisites
 
 - Existing Azure resources:
-  - AKS cluster with kubectl access
+  - AKS cluster with kubectl access and workload identity enabled
   - Azure Container Registry (ACR) attached to AKS
   - Azure Redis Cache instance
+  - Azure Key Vault with Redis connection string stored as secret
+  - Managed identity with Key Vault access permissions
 - Docker installed locally
 - kubectl configured for your AKS cluster
 
-## 1. Prepare Azure Resources
+## 1. Verify Azure Resources
 
-### 1.1 Get Azure Redis Connection Details
+### 1.1 Check Key Vault Configuration
+
+The deployment expects the Redis connection string to be stored in Azure Key Vault:
 
 ```bash
 # Set your Azure resource variables
 RESOURCE_GROUP="your-resource-group"
-REDIS_NAME="your-redis-name"
+KEY_VAULT_NAME="your-key-vault-name"
 ACR_NAME="your-acr-name"
 
-# Get Redis connection details
-REDIS_HOSTNAME=$(az redis show --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query hostName --output tsv)
-REDIS_SSL_PORT=$(az redis show --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query sslPort --output tsv)
-REDIS_ACCESS_KEY=$(az redis list-keys --name $REDIS_NAME --resource-group $RESOURCE_GROUP --query primaryKey --output tsv)
-
-# Construct Redis connection string
-REDIS_CONNECTION_STRING="redis://:$REDIS_ACCESS_KEY@$REDIS_HOSTNAME:$REDIS_SSL_PORT/0?ssl=true"
-echo "Redis Connection String: $REDIS_CONNECTION_STRING"
-
-# Base64 encode for Kubernetes secret
-REDIS_CONNECTION_STRING_B64=$(echo -n "$REDIS_CONNECTION_STRING" | base64)
-echo "Base64 Encoded: $REDIS_CONNECTION_STRING_B64"
+# Verify the Redis connection string secret exists in Key Vault
+az keyvault secret show --vault-name $KEY_VAULT_NAME --name "redis-connection-string" --query value --output tsv
 ```
 
-### 1.2 Get ACR Login Server
+### 1.2 Check Managed Identity
+
+Verify the managed identity exists and has proper permissions:
+
+```bash
+# Check if the quote API managed identity exists
+az identity show --name "sre-trading-aks-quote-identity" --resource-group $RESOURCE_GROUP
+
+# Verify Key Vault access (the identity should have "Key Vault Secrets User" role)
+az role assignment list --assignee $(az identity show --name "sre-trading-aks-quote-identity" --resource-group $RESOURCE_GROUP --query principalId -o tsv) --scope $(az keyvault show --name $KEY_VAULT_NAME --resource-group $RESOURCE_GROUP --query id -o tsv)
+```
+
+### 1.3 Get ACR Login Server
 
 ```bash
 # Get ACR login server
@@ -43,7 +49,30 @@ ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --resource-group $RESOURCE_GROUP
 echo "ACR Login Server: $ACR_LOGIN_SERVER"
 ```
 
-## 2. Build and Push Docker Image
+## 2. Deploy Using Automated Script
+
+### 2.1 Quick Deployment
+
+The easiest way to deploy is using the provided deployment script:
+
+```bash
+# Make the script executable
+chmod +x deploy.sh
+
+# Deploy (no longer requires Redis name parameter)
+./deploy.sh $RESOURCE_GROUP $ACR_NAME
+```
+
+This script will:
+- ✅ Build and push Docker image to ACR
+- ✅ Configure managed identity client ID
+- ✅ Deploy to Kubernetes with Key Vault integration
+- ✅ Wait for deployment to be ready
+- ✅ Show deployment status
+
+## 2. Manual Build and Push (Alternative)
+
+If you prefer manual deployment:
 
 ### 2.1 Build and Push to ACR
 

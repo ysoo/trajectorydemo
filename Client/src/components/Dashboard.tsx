@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
 
       // Flash effect for updated stock
       setFlashingStocks(prev => new Set(prev).add(updatedStock.symbol));
-      
+            
       // Clear flash effect after 500ms
       if (flashTimeoutRef.current) {
         clearTimeout(flashTimeoutRef.current);
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
                 return {
                   ...freshQuote,
                   history: existingStock?.history || addPricePointToHistory([], freshQuote.price)
-                };
+              };
               });
             });
           }
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
         );
       } else {
         setError('Quote API is still unavailable');
-      }
+          }
     } catch (err) {
       setError('Failed to reconnect to Quote API');
     } finally {
