@@ -1,14 +1,20 @@
-// Deploys one user‑assigned managed identity and returns its details.
+// modules/identity.bicep
 
-param name     string
+param name string
 param location string
 
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name:     name
+@description('Deploy the managed identity if it does not exist')
+param deployIdentity bool = true
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (deployIdentity) {
+  name: name
   location: location
 }
 
-output clientId     string = identity.properties.clientId
-output principalId  string = identity.properties.principalId
-output resourceId   string = identity.id
-output name         string = identity.name     // handy for deterministic GUIDs
+// Reference existing identity if not deploying a new one
+resource existingIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!deployIdentity) {
+  name: name
+}
+
+output clientId string = deployIdentity ? identity.properties.clientId : existingIdentity.properties.clientId
+output principalId string = deployIdentity ? identity.properties.principalId : existingIdentity.properties.principalId
