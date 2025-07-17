@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  quote-api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - REDIS_CONNECTION_STRING=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  redis_data: 

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ui-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  rules:
+  - host:      # your DNS name; change or omit for bare IP
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-ui-svc
+            port:
+              number: 80
+  # Optional TLS (cert-manager or secret)
+  # tls:
+  # - hosts: [ui.example.com]
+  #   secretName: ui-tls

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-ui
+  labels:
+    app: web-ui
+    version: v2.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-ui
+  template:
+    metadata:
+      labels:
+        app: web-ui
+        version: v2.0.0
+    spec:
+      containers:
+        - name: web-ui
+          image: <ACR_SERVER>/trading-web-ui:<IMAGE_TAG>
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          env:
+            - name: VITE_QUOTE_API_BASE_URL
+              value: "http://quote-api-service.quote-api.svc.cluster.local"
+            - name: VITE_QUOTE_API_WS_URL
+              value: "ws://quote-api-service.quote-api.svc.cluster.local/ws"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-ui-svc
+  labels:
+    app: web-ui
+    version: v2.0.0
+spec:
+  selector:
+    app: web-ui
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

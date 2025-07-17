@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Stock } from '../types/stock';
 import { formatPrice, formatChange, formatPercentage } from '../utils/formatters';
+import StockChart from './StockChart';
 
 interface StockTickerProps {
   stock: Stock;
@@ -29,7 +30,7 @@ const StockTicker: React.FC<StockTickerProps> = ({ stock, isFlashing = false }) 
         </div>
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="text-white font-mono text-sm opacity-75 truncate">
           {stock.name}
         </div>
@@ -45,8 +46,21 @@ const StockTicker: React.FC<StockTickerProps> = ({ stock, isFlashing = false }) 
             ({formatPercentage(stock.changePercent)})
           </span>
         </div>
+
+        {/* Price Chart */}
+        <div className="bg-black/30 rounded border border-gray-700 p-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-gray-400 text-xs font-mono uppercase">Price Trend</span>
+            <span className="text-gray-500 text-xs font-mono">1D</span>
+          </div>
+          <StockChart 
+            data={stock.history || []} 
+            isPositive={isPositive}
+            symbol={stock.symbol}
+          />
+        </div>
         
-        <div className="grid grid-cols-2 gap-2 text-xs font-mono text-gray-400 mt-3">
+        <div className="grid grid-cols-2 gap-2 text-xs font-mono text-gray-400">
           <div>
             <span className="text-gray-500">HIGH:</span>
             <span className="text-white ml-1">${formatPrice(stock.high)}</span>
