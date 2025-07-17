@@ -13,6 +13,28 @@ A real-time price publisher that streams **live stock market quotes** from Yahoo
 - 🎯 **Multiple symbols** - MSFT, NVDA, TSLA, PLTR, ARKG
 - 🔧 **Auto-recovery** - Automatic switching between real and fallback data
 - 🐳 **Docker support** - Easy deployment with Docker Compose
+- 🔐 **Azure Key Vault Integration** - Secure credential management with managed identity
+
+## 🔐 Azure Key Vault Integration
+
+The Quote API securely retrieves sensitive configuration (Redis connection strings) from Azure Key Vault using managed identity authentication:
+
+### Configuration
+- **Key Vault URL**: `AZURE_KEY_VAULT_URL` environment variable
+- **Secret Name**: `REDIS_SECRET_NAME` environment variable (default: "redis-connection-string")
+- **Authentication**: Uses Azure Workload Identity (managed identity)
+
+### Benefits
+- ✅ **No hardcoded secrets** in configuration files
+- ✅ **Automatic credential rotation** support
+- ✅ **Secure authentication** via managed identity
+- ✅ **Fallback mechanism** for local development
+- ✅ **Centralized secret management** across environments
+
+### Local Development Fallback
+If Key Vault is unavailable, the service falls back to:
+1. `REDIS_CONNECTION_STRING` environment variable
+2. Default localhost Redis connection
 
 ## 📊 Data Sources
 

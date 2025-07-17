@@ -88,7 +88,7 @@ module redis './modules/redis.bicep' = if (deployRedis) {
   scope: resourceGroup(resourceGroupName)
   params: { 
     name: redisName
-    location: location
+    location: location 
     deployRedis: deployRedis
   } 
 }
@@ -98,7 +98,7 @@ module aks './modules/aks.bicep' = if (deployAks) {
   scope: resourceGroup(resourceGroupName)
   params: { 
     name: aksClusterName
-    location: 'Central US'
+    location: 'Central US' 
     deployAks: deployAks
   }
 }
@@ -108,7 +108,7 @@ module keyVault './modules/keyvault.bicep' = if (deployKeyVault) {
   scope: resourceGroup(resourceGroupName)
   params: { 
     name: keyVaultName
-    location: location
+    location: location 
     deployKeyVault: deployKeyVault
   } 
 }
@@ -161,6 +161,20 @@ module quoteKvRole './modules/keyvaultRoleAssignment.bicep' = if (deployRoleAssi
     deployRoleAssignment: deployRoleAssignments
   }
   dependsOn: deployKeyVault && deployIdentities ? [ keyVault, quoteIdentity ] : deployKeyVault ? [ keyVault ] : deployIdentities ? [ quoteIdentity ] : []
+}
+
+// ─────────────── Federated Identity Credentials ──────────────────
+module quoteFederatedIdentity './modules/federatedIdentity.bicep' = if (deployIdentities && deployAks) {
+  name: 'deployQuoteFederatedIdentity'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    identityName: quoteIdentityName
+    oidcIssuerUrl: aks.outputs.oidcIssuerUrl
+    serviceAccountNamespace: 'quote-api'
+    serviceAccountName: 'quote-api-sa'
+    deployFederatedIdentity: deployIdentities && deployAks
+  }
+  dependsOn: deployIdentities && deployAks ? [ quoteIdentity, aks ] : []
 }
 
 // ────────────────────────── Outputs ────────────────────────────

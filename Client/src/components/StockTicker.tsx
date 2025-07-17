@@ -46,7 +46,7 @@ const StockTicker: React.FC<StockTickerProps> = ({ stock, isFlashing = false }) 
             ({formatPercentage(stock.changePercent)})
           </span>
         </div>
-
+        
         {/* Price Chart */}
         <div className="bg-black/30 rounded border border-gray-700 p-2">
           <div className="flex items-center justify-between mb-1">

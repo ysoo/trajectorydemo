@@ -32,6 +32,16 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = if
   properties: {
     dnsPrefix: name
     enableRBAC: true
+    
+    // Enable workload identity and OIDC issuer for Azure Workload Identity
+    oidcIssuerProfile: {
+      enabled: true
+    }
+    securityProfile: {
+      workloadIdentity: {
+        enabled: true
+      }
+    }
 
     networkProfile: {
       networkPlugin: networkPlugin
@@ -60,3 +70,4 @@ resource existingAks 'Microsoft.ContainerService/managedClusters@2023-03-01' exi
 // Outputs
 output clusterName  string = deployAks ? aksCluster.name : existingAks.name
 output principalId  string = deployAks ? aksCluster.identity.principalId : existingAks.identity.principalId   // useful for RBAC or ACR pull access
+output oidcIssuerUrl string = deployAks ? aksCluster.properties.oidcIssuerProfile.issuerURL : existingAks.properties.oidcIssuerProfile.issuerURL

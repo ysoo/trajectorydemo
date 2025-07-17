@@ -1,7 +1,7 @@
 // modules/redisSecret.bicep
 
 param keyVaultName string
-param redisName string 
+param redisName string
 param secretName string
 
 @description('Deploy the Redis connection secret if it does not exist')
