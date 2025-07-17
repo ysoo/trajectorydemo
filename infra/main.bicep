@@ -75,6 +75,18 @@ resource kv 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   scope: rg
 }
 
+// ─────────────────── Redis Connection Secret ──────────────────
+module redisSecret './modules/redisSecret.bicep' = {
+  name: 'deployRedisSecret'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    redisName: redisName
+    secretName: 'redis-connection-string'
+  }
+  dependsOn: [ keyVault, redis ]
+}
+
 var kvSecretsUserRoleResourceId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '4633458b-17de-408a-b874-0445c86b69e6'
