@@ -92,24 +92,6 @@ export async function cacheHistoricalData(symbol: string, history: HistoricalQuo
   }
 }
 
-export async function getHistoricalData(symbol: string): Promise<HistoricalQuote[] | null> {
-  try {
-    if (redis.status !== 'ready') {
-      await redis.connect();
-    }
-    
-    const cached = await redis.get(`history:${symbol}`);
-    if (!cached) {
-      return null;
-    }
-    
-    return JSON.parse(cached) as HistoricalQuote[];
-  } catch (error) {
-    console.error(`Failed to get historical data for ${symbol}:`, error);
-    return null;
-  }
-}
-
 export async function cacheQuoteWithHistory(symbol: string, data: QuoteWithHistory) {
   try {
     if (redis.status !== 'ready') {
@@ -127,55 +109,6 @@ export async function cacheQuoteWithHistory(symbol: string, data: QuoteWithHisto
     console.error(`Failed to cache quote with history for ${symbol}:`, error);
     throw error;
   }
-}
-
-export async function getQuoteWithHistory(symbol: string): Promise<QuoteWithHistory | null> {
-  try {
-    if (redis.status !== 'ready') {
-      await redis.connect();
-    }
-    
-    const cached = await redis.get(`quote_history:${symbol}`);
-    if (!cached) {
-      return null;
-    }
-    
-    return JSON.parse(cached) as QuoteWithHistory;
-  } catch (error) {
-    console.error(`Failed to get quote with history for ${symbol}:`, error);
-    return null;
-  }
-}
-
-export async function subscribeToQuotes(onQuote: (quote: Quote) => void): Promise<Redis> {
-  const subscriber = new Redis(redisUrl, redisConfig);
-  await subscriber.connect();
-  console.log('Redis subscriber connected');
-  
-  subscriber.on("message", (channel, message) => {
-    if (channel === "quotes") {
-      try {
-        const quote: Quote = JSON.parse(message);
-        onQuote(quote);
-      } catch (error) {
-        console.error("Failed to parse quote message:", error);
-      }
-    }
-  });
-
-  subscriber.on('error', (err) => {
-    console.error('Redis subscriber error:', err.message);
-  });
-
-  try {
-    await subscriber.subscribe("quotes");
-    console.log('Successfully subscribed to quotes channel');
-  } catch (error) {
-    console.error('Failed to subscribe to quotes channel:', error);
-    throw error;
-  }
-  
-  return subscriber;
 }
 
 // Cache management utilities

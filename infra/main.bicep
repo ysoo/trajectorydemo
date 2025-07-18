@@ -48,37 +48,37 @@ resource existingRg 'Microsoft.Resources/resourceGroups@2023-07-01' existing = i
 }
 
 // ──────────────── User‑Assigned Managed Identities ─────────────
-var tradeIdentityName = '${aksClusterName}-trade-identity'
-var quoteIdentityName = '${aksClusterName}-quote-identity'
+var publisherIdentityName = '${aksClusterName}-publisher-identity'
+var subscriberIdentityName = '${aksClusterName}-subscriber-identity'
 
-module tradeIdentity './modules/identity.bicep' = if (deployIdentities) {
+module publisherIdentity './modules/identity.bicep' = if (deployIdentities) {
   name:  'deployTradeIdentity'
   scope: resourceGroup(resourceGroupName)
   params: {
-    name:     tradeIdentityName
+    name:     publisherIdentityName
     location: location
     deployIdentity: deployIdentities
   }
 }
 
-module quoteIdentity './modules/identity.bicep' = if (deployIdentities) {
+module subscriberIdentity './modules/identity.bicep' = if (deployIdentities) {
   name:  'deployQuoteIdentity'
   scope: resourceGroup(resourceGroupName)
   params: {
-    name:     quoteIdentityName
+    name:     subscriberIdentityName
     location: location
     deployIdentity: deployIdentities
   }
 }
 
 // Reference existing identities if not deploying new ones
-resource existingTradeIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!deployIdentities) {
-  name: tradeIdentityName
+resource existingPublisherIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!deployIdentities) {
+  name: publisherIdentityName
   scope: resourceGroup(resourceGroupName)
 }
 
-resource existingQuoteIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!deployIdentities) {
-  name: quoteIdentityName
+resource existingSubscriberIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!deployIdentities) {
+  name: subscriberIdentityName
   scope: resourceGroup(resourceGroupName)
 }
 
@@ -137,44 +137,57 @@ var kvSecretsUserRoleResourceId = subscriptionResourceId(
   '4633458b-17de-408a-b874-0445c86b69e6'
 )
 
-module tradeKvRole './modules/keyvaultRoleAssignment.bicep' = if (deployRoleAssignments) {
-  name:  'assignTradeIdentityKvRole'
+module publisherKvRole './modules/keyvaultRoleAssignment.bicep' = if (deployRoleAssignments) {
+  name:  'assignPublisherIdentityKvRole'
   scope: resourceGroup(resourceGroupName)
   params: {
-    principalName:        tradeIdentityName
-    principalId:          deployIdentities ? tradeIdentity.outputs.principalId : existingTradeIdentity.properties.principalId
+    principalName:        publisherIdentityName
+    principalId:          deployIdentities ? publisherIdentity.outputs.principalId : existingPublisherIdentity.properties.principalId
     keyVaultResourceId:   kv.id
     roleDefinitionResourceId: kvSecretsUserRoleResourceId
     deployRoleAssignment: deployRoleAssignments
   }
-  dependsOn: deployKeyVault && deployIdentities ? [ keyVault, tradeIdentity ] : deployKeyVault ? [ keyVault ] : deployIdentities ? [ tradeIdentity ] : []
+    dependsOn: deployKeyVault && deployIdentities ? [ keyVault, publisherIdentity ] : deployKeyVault ? [ keyVault ] : deployIdentities ? [ publisherIdentity ] : []
 }
 
-module quoteKvRole './modules/keyvaultRoleAssignment.bicep' = if (deployRoleAssignments) {
-  name:  'assignQuoteIdentityKvRole'
+module subscriberKvRole './modules/keyvaultRoleAssignment.bicep' = if (deployRoleAssignments) {
+  name:  'assignSubscriberIdentityKvRole'
   scope: resourceGroup(resourceGroupName)
   params: {
-    principalName:        quoteIdentityName
-    principalId:          deployIdentities ? quoteIdentity.outputs.principalId : existingQuoteIdentity.properties.principalId
+    principalName:        subscriberIdentityName
+    principalId:          deployIdentities ? subscriberIdentity.outputs.principalId : existingSubscriberIdentity.properties.principalId
     keyVaultResourceId:   kv.id
     roleDefinitionResourceId: kvSecretsUserRoleResourceId
     deployRoleAssignment: deployRoleAssignments
   }
-  dependsOn: deployKeyVault && deployIdentities ? [ keyVault, quoteIdentity ] : deployKeyVault ? [ keyVault ] : deployIdentities ? [ quoteIdentity ] : []
+  dependsOn: deployKeyVault && deployIdentities ? [ keyVault, subscriberIdentity ] : deployKeyVault ? [ keyVault ] : deployIdentities ? [ subscriberIdentity ] : []
 }
 
 // ─────────────── Federated Identity Credentials ──────────────────
-module quoteFederatedIdentity './modules/federatedIdentity.bicep' = if (deployIdentities && deployAks) {
-  name: 'deployQuoteFederatedIdentity'
+module subscriberFederatedIdentity './modules/federatedIdentity.bicep' = if (deployIdentities && deployAks) {
+  name: 'deploySubscriberFederatedIdentity'
   scope: resourceGroup(resourceGroupName)
   params: {
-    identityName: quoteIdentityName
+    identityName: subscriberIdentityName
     oidcIssuerUrl: aks.outputs.oidcIssuerUrl
     serviceAccountNamespace: 'quote-api'
     serviceAccountName: 'quote-api-sa'
     deployFederatedIdentity: deployIdentities && deployAks
   }
-  dependsOn: deployIdentities && deployAks ? [ quoteIdentity, aks ] : []
+  dependsOn: deployIdentities && deployAks ? [ subscriberIdentity, aks ] : []
+}
+
+module publisherFederatedIdentity './modules/federatedIdentity.bicep' = if (deployIdentities && deployAks) {
+  name: 'deployPublisherFederatedIdentity'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    identityName: publisherIdentityName
+    oidcIssuerUrl: aks.outputs.oidcIssuerUrl
+    serviceAccountNamespace: 'quote-api-publisher'
+    serviceAccountName: 'quote-api-publisher-sa'
+    deployFederatedIdentity: deployIdentities && deployAks
+  }
+  dependsOn: deployIdentities && deployAks ? [ publisherIdentity, aks ] : []
 }
 
 // ────────────────────────── Outputs ────────────────────────────
@@ -182,7 +195,7 @@ output aksClusterNameOut string = deployAks ? aks.outputs.clusterName : aksClust
 output redisHost string = deployRedis ? redis.outputs.hostName : '${redisName}.redis.cache.windows.net'
 output keyVaultUri string = deployKeyVault ? keyVault.outputs.vaultUri : 'https://${keyVaultName}.vault.azure.net/'
 
-output tradeApiIdentityClientId string = deployIdentities ? tradeIdentity.outputs.clientId : existingTradeIdentity.properties.clientId
-output tradeApiIdentityPrincipalId string = deployIdentities ? tradeIdentity.outputs.principalId : existingTradeIdentity.properties.principalId
-output quoteApiIdentityClientId string = deployIdentities ? quoteIdentity.outputs.clientId : existingQuoteIdentity.properties.clientId
-output quoteApiIdentityPrincipalId string = deployIdentities ? quoteIdentity.outputs.principalId : existingQuoteIdentity.properties.principalId
+output publisherApiIdentityClientId string = deployIdentities ? publisherIdentity.outputs.clientId : existingPublisherIdentity.properties.clientId
+output publisherApiIdentityPrincipalId string = deployIdentities ? publisherIdentity.outputs.principalId : existingPublisherIdentity.properties.principalId
+output subscriberApiIdentityClientId string = deployIdentities ? subscriberIdentity.outputs.clientId : existingSubscriberIdentity.properties.clientId
+output subscriberApiIdentityPrincipalId string = deployIdentities ? subscriberIdentity.outputs.principalId : existingSubscriberIdentity.properties.principalId

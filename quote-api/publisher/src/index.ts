@@ -5,14 +5,8 @@ import { marketDataProvider } from "./marketDataProvider.js";
 import { 
   publishQuote, 
   redis, 
-  subscribeToQuotes, 
-  cacheHistoricalData,
-  getHistoricalData,
-  cacheQuoteWithHistory,
-  getQuoteWithHistory,
   clearExpiredCache
-} from "./redisPubSub.js";
-import type { Quote } from "./types.js";
+} from "./redisPub.js";
 
 const PORT = process.env.PORT ? +process.env.PORT : 8080;
 const TICK_MS = parseInt(process.env.TICK_MS || "5000"); // 5 seconds for real data (less frequent)
@@ -28,7 +22,7 @@ await app.register(cors, {
         /^https?:\/\/.*\.azurecontainer\.io$/,  // Azure Container Instances
         /^https?:\/\/localhost(:\d+)?$/,        // Local development
         /^https?:\/\/127\.0\.0\.1(:\d+)?$/,     // Local development
-        /^http?:\/\/52\.158\.166\.7(:\d+)?$/,     // Frontend server IP
+        /^http?:\/\/52\.158\.166\.7(:\d+)?$/,   // Frontend server IP
       ]
     : true, // Allow all origins in development
   credentials: true,
@@ -63,62 +57,6 @@ app.get("/v1/quotes", async (req, res) => {
   return quote;
 });
 
-// REST endpoint - Get quote with historical data
-app.get("/v1/quotes/:symbol/history", async (req, res) => {
-  const { symbol } = req.params as { symbol: string };
-  
-  if (!symbol) {
-    return res.status(400).send({ message: "symbol parameter is required" });
-  }
-  
-  const symbolUpper = symbol.toUpperCase();
-  
-  // Check Redis cache first
-  const cached = await getQuoteWithHistory(symbolUpper);
-  if (cached) {
-    return cached;
-  }
-  
-  // Fetch fresh data
-  const data = await marketDataProvider.getQuoteWithHistory(symbolUpper);
-  if (!data) {
-    return res.status(404).send({ message: "data not available for symbol" });
-  }
-  
-  // Cache the combined data
-  await cacheQuoteWithHistory(symbolUpper, data);
-  await cacheHistoricalData(symbolUpper, data.history);
-  
-  return data;
-});
-
-// REST endpoint - Get only historical data
-app.get("/v1/history/:symbol", async (req, res) => {
-  const { symbol } = req.params as { symbol: string };
-  
-  if (!symbol) {
-    return res.status(400).send({ message: "symbol parameter is required" });
-  }
-  
-  const symbolUpper = symbol.toUpperCase();
-  
-  // Check cache first
-  const cached = await getHistoricalData(symbolUpper);
-  if (cached) {
-    return { symbol: symbolUpper, history: cached };
-  }
-  
-  // Fetch fresh historical data
-  const history = await marketDataProvider.getHistoricalData(symbolUpper);
-  if (history.length === 0) {
-    return res.status(404).send({ message: "historical data not available" });
-  }
-  
-  // Cache the data
-  await cacheHistoricalData(symbolUpper, history);
-  
-  return { symbol: symbolUpper, history };
-});
 
 // REST endpoint - Get all supported symbols
 app.get("/v1/symbols", async (req, res) => {
@@ -149,24 +87,6 @@ app.get("/v1/status", async (req, res) => {
       health: "/health"
     }
   };
-});
-
-// WebSocket streaming - subscribe to Redis pub/sub for real-time quotes
-app.get("/ws", { websocket: true }, async (conn) => {
-  const subscriber = await subscribeToQuotes((quote: Quote) => {
-    if (conn.socket.readyState === conn.socket.OPEN) {
-      conn.socket.send(JSON.stringify(quote));
-    }
-  });
-
-  conn.socket.on("close", () => {
-    subscriber.disconnect();
-  });
-
-  conn.socket.on("error", (err: Error) => {
-    app.log.error("WebSocket error:", err);
-    subscriber.disconnect();
-  });
 });
 
 // Health check endpoint

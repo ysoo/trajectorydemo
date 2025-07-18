@@ -29,8 +29,8 @@ echo "✅ ACR: $ACR_LOGIN_SERVER"
 # Login to ACR and build/push image
 echo "🔨 Building and pushing Docker image..."
 az acr login --name $ACR_NAME
-docker build -t $ACR_LOGIN_SERVER/quote-api:latest .
-docker push $ACR_LOGIN_SERVER/quote-api:latest
+docker build -t $ACR_LOGIN_SERVER/quote-api-publisher:latest .
+docker push $ACR_LOGIN_SERVER/quote-api-publisher:latest
 echo "✅ Image pushed to ACR"
 
 # Create temporary deployment file with substitutions
@@ -45,7 +45,7 @@ sed -i "s/<YOUR_ACR_LOGIN_SERVER>/$ACR_ESCAPED/g" k8s-deployment-temp.yaml
 
 # Get the managed identity client ID from Azure
 echo "🔧 Getting managed identity information..."
-QUOTE_IDENTITY_CLIENT_ID=$(az identity show --name "sre-trading-aks-quote-identity" --resource-group "$RESOURCE_GROUP" --query clientId -o tsv 2>/dev/null || echo "")
+QUOTE_IDENTITY_CLIENT_ID=$(az identity show --name "sre-trading-aks-publisher-identity" --resource-group "$RESOURCE_GROUP" --query clientId -o tsv 2>/dev/null || echo "")
 
 if [ -n "$QUOTE_IDENTITY_CLIENT_ID" ]; then
     echo "🔧 Updating managed identity client ID..."
@@ -63,24 +63,24 @@ kubectl apply -f k8s-deployment-temp.yaml
 
 # Force rollout restart to ensure new image is pulled
 echo "🔄 Forcing deployment rollout restart..."
-kubectl rollout restart deployment/quote-api -n quote-api
+kubectl rollout restart deployment/quote-api-publisher -n quote-api-publisher
 
 # Clean up temporary file
 rm k8s-deployment-temp.yaml
 
 # Wait for deployment
 echo "⏳ Waiting for deployment to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/quote-api -n quote-api
+kubectl wait --for=condition=available --timeout=300s deployment/quote-api-publisher -n quote-api-publisher
 
 # Show status
 echo ""
 echo "✅ Deployment completed successfully!"
 echo ""
 echo "📊 Deployment Status:"
-kubectl get pods -n quote-api
+kubectl get pods -n quote-api-publisher
 echo ""
 echo "🌐 Service Details:"
-kubectl get service quote-api-service -n quote-api
+kubectl get service quote-api-publisher-service -n quote-api-publisher
 echo ""
 echo "🔗 Internal Service URL:"
 echo "   REST API: http://quote-api-service.quote-api.svc.cluster.local/v1/quotes?symbol=MSFT"
