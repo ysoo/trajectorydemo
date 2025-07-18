@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StockTicker from './StockTicker';
 import MarketSummary from './MarketSummary';
+import NewsScroller from './NewsScroller';
 import { Stock, ConnectionStatus } from '../types/stock';
+import { newsItems } from '../data/stocks';
 import { quoteApiService } from '../services/quoteApi';
 import { addPricePointToHistory } from '../utils/stockUtils';
 
@@ -221,31 +223,36 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <div className="flex-1 p-3 space-y-3">
-        {/* Connection Status Indicator */}
-        <div className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg p-2">
-          <div className="flex items-center space-x-3">
-            <div 
-              className={`w-3 h-3 rounded-full ${
-                connectionStatus.connected ? 'bg-green-400' : 'bg-red-400'
-              }`}
-            ></div>
-            <span className="text-sm font-mono">
-              {connectionStatus.connected ? 'Live Data' : 'Reconnecting...'}
-            </span>
-            <span className="text-xs text-gray-400 font-mono">
-              Source: {connectionStatus.dataSource}
-            </span>
+        {/* Connection Status and News */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          {/* Connection Status - Takes 1/4 of the space */}
+          <div className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg p-2">
+            <div className="flex items-center space-x-3">
+              <div 
+                className={`w-3 h-3 rounded-full ${
+                  connectionStatus.connected ? 'bg-green-400' : 'bg-red-400'
+                }`}
+              ></div>
+              <span className="text-sm font-mono">
+                {connectionStatus.connected ? 'Live Data' : 'Reconnecting...'}
+              </span>
+              <span className="text-xs text-gray-400 font-mono">
+                Source: {connectionStatus.dataSource}
+              </span>
+            </div>
+            
+            {connectionStatus.reconnectAttempts > 0 && (
+              <span className="text-xs text-yellow-400 font-mono">
+                Attempts: {connectionStatus.reconnectAttempts}
+              </span>
+            )}
           </div>
-          
-          {connectionStatus.reconnectAttempts > 0 && (
-            <span className="text-xs text-yellow-400 font-mono">
-              Attempts: {connectionStatus.reconnectAttempts}
-            </span>
-          )}
-        </div>
 
-        {/* Market Summary - Compact */}
-        <MarketSummary />
+          {/* News Scroller - Takes 3/4 of the space */}
+          <div className="lg:col-span-3">
+            <NewsScroller newsItems={newsItems} />
+          </div>
+        </div>
         
         {/* Stock Tickers Grid - Optimized for 8 tickers and maximum screen usage */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 content-start">
@@ -274,6 +281,11 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Market Summary - Now at the bottom */}
+        <div className="mt-auto">
+          <MarketSummary />
+        </div>
       </div>
     </div>
   );
