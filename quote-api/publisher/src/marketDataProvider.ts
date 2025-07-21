@@ -1,6 +1,7 @@
 import yahooFinance from 'yahoo-finance2';
 import type { Quote, HistoricalQuote, QuoteWithHistory, MarketDataCache } from './types.js';
 import { generateFallbackQuote, generateFallbackHistory } from './quoteGenerator.js';
+import { isMarketHours } from './utils.js';
 
 const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 const CACHE_TTL_MINUTES = 1; // Cache quotes for 1 minute
@@ -12,7 +13,7 @@ export class MarketDataProvider {
   private cache = new Map<string, MarketDataCache>();
   private lastSuccessfulFetch = 0;
   private consecutiveFailures = 0;
-  private useFallbackMode = false;
+  private useFallbackMode = true;
 
   /**
    * Get real-time quote for a symbol with fallback

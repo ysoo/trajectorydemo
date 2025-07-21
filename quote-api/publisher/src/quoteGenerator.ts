@@ -1,17 +1,18 @@
 import type { Quote, HistoricalQuote } from "./types.js";
+import { isMarketHours } from "./utils.js";
 
 const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 
-// Real market closing prices for reference (you can update these periodically)
+// Real market closing prices for reference (updated July 2025)
 const REFERENCE_PRICES: Record<string, number> = {
-  MSFT: 384.52,
-  NVDA: 892.87,
-  TSLA: 248.91,
-  PLTR: 26.84,
-  ARKG: 18.34,
-  SPY: 472.35,   // S&P 500 ETF
-  META: 512.78,  // Meta Platforms
-  GOOGL: 175.43  // Alphabet Class A
+  MSFT: 510.05,
+  NVDA: 172.41,
+  TSLA: 329.65,
+  PLTR: 153.52,
+  ARKG: 24.92,
+  SPY: 627.58,   // S&P 500 ETF
+  META: 704.28,  // Meta Platforms
+  GOOGL: 185.06  // Alphabet Class A
 };
 
 // Market state tracking for realistic behavior
@@ -43,21 +44,7 @@ function getVolatilityForSymbol(symbol: string): number {
   }
 }
 
-// Check if markets are likely open (rough approximation)
-function isMarketHours(): boolean {
-  const now = new Date();
-  const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-  const est = new Date(utc.getTime() + (-5 * 3600000)); // EST/EDT approximation
-  
-  const hour = est.getHours();
-  const dayOfWeek = est.getDay();
-  
-  // Weekend
-  if (dayOfWeek === 0 || dayOfWeek === 6) return false;
-  
-  // Rough market hours (9:30 AM - 4:00 PM EST)
-  return hour >= 9 && hour <= 16;
-}
+
 
 /** Generate realistic fallback quote when real data is unavailable */
 export function generateFallbackQuote(symbol?: string): Quote {
@@ -83,13 +70,35 @@ export function generateFallbackQuote(symbol?: string): Quote {
     };
   }
   
+
   // Simulate realistic price movement
   const isOpen = isMarketHours();
   const volatilityMultiplier = isOpen ? 1.0 : 0.1; // Much less movement when markets closed
-  
+
   // Random walk with trend
   const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
   state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
+
+  // Apply 10% constraint with bounce back behavior
+  const constraintReferencePrice = REFERENCE_PRICES[targetSymbol] || 100;
+  const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
+  const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
+
+  if (targetSymbol === "MSFT" && state.lastPrice < REFERENCE_PRICES["MSFT"]) {
+    state.lastPrice = REFERENCE_PRICES["MSFT"];
+    state.trend = Math.abs(state.trend); // force trend positive
+  } else if (targetSymbol === "ARKG" && state.lastPrice > REFERENCE_PRICES["ARKG"]) {
+    state.lastPrice = REFERENCE_PRICES["ARKG"];
+    state.trend = -Math.abs(state.trend); // force trend negative
+  } else if (state.lastPrice > maxAllowedPrice) {
+    // Hit upper bound - bounce back down
+    state.lastPrice = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    state.trend = -Math.abs(state.trend); // Force trend negative for bounce
+  } else if (state.lastPrice < minAllowedPrice) {
+    // Hit lower bound - bounce back up
+    state.lastPrice = minAllowedPrice + (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    state.trend = Math.abs(state.trend); // Force trend positive for bounce
+  }
   
   // Occasionally change trend
   if (Math.random() < 0.05) {
@@ -133,11 +142,29 @@ export function generateFallbackHistory(symbol: string, points: number = 78): Hi
     const timestamp = now - (points - i) * interval;
     const date = new Date(timestamp);
     
+
     // Simulate intraday movement
     const change = (Math.random() - 0.5) * volatility;
     price = Math.max(0.01, price * (1 + change));
+
+    // Apply 10% constraint with bounce back behavior for historical data
+    const constraintReferencePrice = REFERENCE_PRICES[symbol] || 100;
+    const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
+    const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
+
+    if (symbol === "MSFT" && price < REFERENCE_PRICES["MSFT"]) {
+      price = REFERENCE_PRICES["MSFT"];
+    } else if (symbol === "ARKG" && price > REFERENCE_PRICES["ARKG"]) {
+      price = REFERENCE_PRICES["ARKG"];
+    } else if (price > maxAllowedPrice) {
+      // Hit upper bound - bounce back down
+      price = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    } else if (price < minAllowedPrice) {
+      // Hit lower bound - bounce back up
+      price = minAllowedPrice + (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    }
     
-    // Add some trend toward current price
+    // Add some trend toward current price (reduced effect after bounce)
     const trendToTarget = (basePrice - price) * 0.001;
     price += trendToTarget;
     

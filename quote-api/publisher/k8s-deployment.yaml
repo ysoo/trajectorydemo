@@ -33,7 +33,7 @@ metadata:
     app: quote-api-publisher
     version: v1.0.0
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: quote-api-publisher
@@ -156,8 +156,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: quote-api-publisher
-  minReplicas: 3
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 1
   metrics:
   - type: Resource
     resource:
