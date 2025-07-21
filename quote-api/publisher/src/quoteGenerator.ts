@@ -23,9 +23,9 @@ function initializeMarketState() {
   for (const symbol of SYMBOLS) {
     let initialTrend = (Math.random() - 0.5) * 0.001; // Random initial trend
     
-    // Special case: ARKG should always have a negative trend
+    // Special case: ARKG should have a slightly negative bias but allow some positive trends
     if (symbol === "ARKG") {
-      initialTrend = -Math.abs(initialTrend) - 0.001; // Ensure negative trend
+      initialTrend = (Math.random() - 0.6) * 0.001; // Biased toward negative but can be positive
     }
     
     marketState.set(symbol, {
@@ -81,13 +81,32 @@ export function generateFallbackQuote(symbol?: string): Quote {
   const isOpen = isMarketHours();
   const volatilityMultiplier = isOpen ? 1.0 : 0.1; // Much less movement when markets closed
   
-  // Special handling for ARKG to always decline
+  // Special handling for ARKG to decline with bounce backs but never exceed starting price
   if (targetSymbol === "ARKG") {
-    // For ARKG, always apply a negative trend with some volatility
-    const negativeChange = -Math.abs(Math.random() * state.volatility * volatilityMultiplier * 0.5);
-    const negativetrend = -Math.abs(state.trend) - 0.001; // Ensure always negative trend
-    state.lastPrice = Math.max(0.01, state.lastPrice * (1 + negativeChange + negativetrend));
-    state.trend = negativetrend; // Keep the trend negative
+    // Allow normal volatility but add a declining bias
+    const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
+    const declineBias = -0.0005; // Small consistent decline bias
+    
+    let newPrice = state.lastPrice * (1 + change + state.trend + declineBias);
+    
+    // Ensure price never goes above the reference starting price
+    const maxPrice = REFERENCE_PRICES["ARKG"];
+    if (newPrice > maxPrice) {
+      newPrice = maxPrice - (Math.random() * 0.1); // Pull it back down with some randomness
+    }
+    
+    // Ensure price never goes below $20 (support level)
+    const minPrice = 20.0;
+    if (newPrice < minPrice) {
+      newPrice = minPrice + (Math.random() * 0.5); // Bounce back up with some randomness
+    }
+    
+    state.lastPrice = Math.max(0.01, newPrice);
+    
+    // Occasionally adjust trend but keep it slightly negative on average
+    if (Math.random() < 0.05) {
+      state.trend = (Math.random() - 0.6) * 0.002; // Biased toward negative trends
+    }
   } else {
     // Random walk with trend for other stocks
     const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
@@ -136,12 +155,27 @@ export function generateFallbackHistory(symbol: string, points: number = 78): Hi
     const timestamp = now - (points - i) * interval;
     const date = new Date(timestamp);
     
-    // Special handling for ARKG to show declining pattern
+    // Special handling for ARKG to show declining pattern with bounce backs
     if (symbol === "ARKG") {
-      // Make ARKG consistently decline over time
-      const declineRate = 0.002; // 0.2% decline per interval on average
-      const change = -Math.abs(Math.random() * volatility) - declineRate;
-      price = Math.max(0.01, price * (1 + change));
+      // Allow some volatility with bounce backs but maintain overall decline
+      const change = (Math.random() - 0.5) * volatility;
+      const declineRate = 0.001; // Smaller decline rate to allow for bounces
+      
+      let newPrice = price * (1 + change - declineRate);
+      
+      // Ensure price never goes above the starting reference price
+      const maxPrice = REFERENCE_PRICES["ARKG"];
+      if (newPrice > maxPrice) {
+        newPrice = maxPrice - (Math.random() * 0.5); // Pull it back down
+      }
+      
+      // Ensure price never goes below $20 (support level)
+      const minPrice = 20.0;
+      if (newPrice < minPrice) {
+        newPrice = minPrice + (Math.random() * 0.5); // Bounce back up
+      }
+      
+      price = Math.max(0.01, newPrice);
     } else {
       // Simulate intraday movement for other stocks
       const change = (Math.random() - 0.5) * volatility;
