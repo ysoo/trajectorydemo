@@ -21,21 +21,9 @@ const marketState = new Map<string, { lastPrice: number; trend: number; volatili
 // Initialize market state
 function initializeMarketState() {
   for (const symbol of SYMBOLS) {
-    let initialTrend = (Math.random() - 0.5) * 0.001; // Random initial trend
-    
-    // Special case: ARKG should have a slightly negative bias but allow some positive trends
-    if (symbol === "ARKG") {
-      initialTrend = (Math.random() - 0.6) * 0.001; // Biased toward negative but can be positive
-    }
-    
-    // Special case: MSFT should have a positive bias for increasing trend
-    if (symbol === "MSFT") {
-      initialTrend = Math.abs(initialTrend) + 0.0005; // Biased toward positive trends
-    }
-    
     marketState.set(symbol, {
       lastPrice: REFERENCE_PRICES[symbol] || 100,
-      trend: initialTrend,
+      trend: (Math.random() - 0.5) * 0.001, // Random initial trend
       volatility: getVolatilityForSymbol(symbol)
     });
   }
@@ -86,66 +74,28 @@ export function generateFallbackQuote(symbol?: string): Quote {
   const isOpen = isMarketHours();
   const volatilityMultiplier = isOpen ? 1.0 : 0.1; // Much less movement when markets closed
   
-  // Special handling for ARKG to decline with bounce backs but never exceed starting price
-  if (targetSymbol === "ARKG") {
-    // Allow normal volatility but add a declining bias
-    const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
-    const declineBias = -0.0005; // Small consistent decline bias
-    
-    let newPrice = state.lastPrice * (1 + change + state.trend + declineBias);
-    
-    // Ensure price never goes above the reference starting price
-    const maxPrice = REFERENCE_PRICES["ARKG"];
-    if (newPrice > maxPrice) {
-      newPrice = maxPrice - (Math.random() * 0.1); // Pull it back down with some randomness
-    }
-    
-    // Ensure price never goes below $20 (support level)
-    const minPrice = 20.0;
-    if (newPrice < minPrice) {
-      newPrice = minPrice + (Math.random() * 0.5); // Bounce back up with some randomness
-    }
-    
-    state.lastPrice = Math.max(0.01, newPrice);
-    
-    // Occasionally adjust trend but keep it slightly negative on average
-    if (Math.random() < 0.05) {
-      state.trend = (Math.random() - 0.6) * 0.002; // Biased toward negative trends
-    }
-  } else if (targetSymbol === "MSFT") {
-    // Special handling for MSFT to always increase but never exceed $530
-    const change = Math.abs((Math.random() - 0.5) * state.volatility * volatilityMultiplier * 0.5); // Positive bias
-    const increaseBias = 0.0003; // Small consistent increase bias
-    
-    let newPrice = state.lastPrice * (1 + change + Math.abs(state.trend) + increaseBias);
-    
-    // Ensure price never goes above $530
-    const maxPrice = 530.0;
-    if (newPrice > maxPrice) {
-      newPrice = maxPrice - (Math.random() * 0.5); // Pull it back down with some randomness
-    }
-    
-    // Ensure price never goes below the reference starting price
-    const minPrice = REFERENCE_PRICES["MSFT"];
-    if (newPrice < minPrice) {
-      newPrice = minPrice + (Math.random() * 0.5); // Bounce back up with some randomness
-    }
-    
-    state.lastPrice = Math.max(0.01, newPrice);
-    
-    // Occasionally adjust trend but keep it positive on average
-    if (Math.random() < 0.05) {
-      state.trend = (Math.random() + 0.2) * 0.002; // Biased toward positive trends
-    }
-  } else {
-    // Random walk with trend for other stocks
-    const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
-    state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
-    
-    // Occasionally change trend for non-ARKG stocks
-    if (Math.random() < 0.05) {
-      state.trend = (Math.random() - 0.5) * 0.002;
-    }
+  // Random walk with trend
+  const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
+  state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
+  
+  // Apply 10% constraint with bounce back behavior
+  const constraintReferencePrice = REFERENCE_PRICES[targetSymbol] || 100;
+  const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
+  const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
+  
+  if (state.lastPrice > maxAllowedPrice) {
+    // Hit upper bound - bounce back down
+    state.lastPrice = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    state.trend = -Math.abs(state.trend); // Force trend negative for bounce
+  } else if (state.lastPrice < minAllowedPrice) {
+    // Hit lower bound - bounce back up
+    state.lastPrice = minAllowedPrice + (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    state.trend = Math.abs(state.trend); // Force trend positive for bounce
+  }
+  
+  // Occasionally change trend
+  if (Math.random() < 0.05) {
+    state.trend = (Math.random() - 0.5) * 0.002;
   }
   
   const price = Math.round(state.lastPrice * 100) / 100;
@@ -185,56 +135,26 @@ export function generateFallbackHistory(symbol: string, points: number = 78): Hi
     const timestamp = now - (points - i) * interval;
     const date = new Date(timestamp);
     
-    // Special handling for ARKG to show declining pattern with bounce backs
-    if (symbol === "ARKG") {
-      // Allow some volatility with bounce backs but maintain overall decline
-      const change = (Math.random() - 0.5) * volatility;
-      const declineRate = 0.001; // Smaller decline rate to allow for bounces
-      
-      let newPrice = price * (1 + change - declineRate);
-      
-      // Ensure price never goes above the starting reference price
-      const maxPrice = REFERENCE_PRICES["ARKG"];
-      if (newPrice > maxPrice) {
-        newPrice = maxPrice - (Math.random() * 0.5); // Pull it back down
-      }
-      
-      // Ensure price never goes below $20 (support level)
-      const minPrice = 20.0;
-      if (newPrice < minPrice) {
-        newPrice = minPrice + (Math.random() * 0.5); // Bounce back up
-      }
-      
-      price = Math.max(0.01, newPrice);
-    } else if (symbol === "MSFT") {
-      // Special handling for MSFT to show increasing pattern with occasional pullbacks
-      const change = Math.abs((Math.random() - 0.5) * volatility * 0.7); // Mostly positive changes
-      const increaseRate = 0.0008; // Small increase rate to allow for growth
-      
-      let newPrice = price * (1 + change + increaseRate);
-      
-      // Ensure price never goes above $530
-      const maxPrice = 530.0;
-      if (newPrice > maxPrice) {
-        newPrice = maxPrice - (Math.random() * 1.0); // Pull it back down
-      }
-      
-      // Ensure price never goes below the starting reference price
-      const minPrice = REFERENCE_PRICES["MSFT"];
-      if (newPrice < minPrice) {
-        newPrice = minPrice + (Math.random() * 1.0); // Bounce back up
-      }
-      
-      price = Math.max(0.01, newPrice);
-    } else {
-      // Simulate intraday movement for other stocks
-      const change = (Math.random() - 0.5) * volatility;
-      price = Math.max(0.01, price * (1 + change));
-      
-      // Add some trend toward current price for other stocks
-      const trendToTarget = (basePrice - price) * 0.001;
-      price += trendToTarget;
+    // Simulate intraday movement
+    const change = (Math.random() - 0.5) * volatility;
+    price = Math.max(0.01, price * (1 + change));
+    
+    // Apply 10% constraint with bounce back behavior for historical data
+    const constraintReferencePrice = REFERENCE_PRICES[symbol] || 100;
+    const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
+    const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
+    
+    if (price > maxAllowedPrice) {
+      // Hit upper bound - bounce back down
+      price = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
+    } else if (price < minAllowedPrice) {
+      // Hit lower bound - bounce back up
+      price = minAllowedPrice + (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
     }
+    
+    // Add some trend toward current price (reduced effect after bounce)
+    const trendToTarget = (basePrice - price) * 0.001;
+    price += trendToTarget;
     
     const open = i === 0 ? price : history[i - 1].close;
     const high = price * (1 + Math.random() * 0.005);
