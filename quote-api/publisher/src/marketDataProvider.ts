@@ -13,14 +13,14 @@ export class MarketDataProvider {
   private cache = new Map<string, MarketDataCache>();
   private lastSuccessfulFetch = 0;
   private consecutiveFailures = 0;
-  private useFallbackMode = false;
+  private useFallbackMode = true;
 
   /**
    * Get real-time quote for a symbol with fallback
    */
   async getQuote(symbol: string): Promise<Quote | null> {
     // If we're in fallback mode or have too many failures, use fallback immediately
-    if (!isMarketHours() || this.useFallbackMode || this.consecutiveFailures >= MAX_RETRIES) {
+    if (this.useFallbackMode || this.consecutiveFailures >= MAX_RETRIES) {
       console.log(`Using fallback data for ${symbol} (mode: ${this.useFallbackMode ? 'fallback' : 'failures'})`);
       return generateFallbackQuote(symbol);
     }
