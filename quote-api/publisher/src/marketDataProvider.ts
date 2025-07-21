@@ -1,6 +1,7 @@
 import yahooFinance from 'yahoo-finance2';
 import type { Quote, HistoricalQuote, QuoteWithHistory, MarketDataCache } from './types.js';
 import { generateFallbackQuote, generateFallbackHistory } from './quoteGenerator.js';
+import { isMarketHours } from './utils.js';
 
 const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 const CACHE_TTL_MINUTES = 1; // Cache quotes for 1 minute
@@ -19,7 +20,7 @@ export class MarketDataProvider {
    */
   async getQuote(symbol: string): Promise<Quote | null> {
     // If we're in fallback mode or have too many failures, use fallback immediately
-    if (this.useFallbackMode || this.consecutiveFailures >= MAX_RETRIES) {
+    if (!isMarketHours() || this.useFallbackMode || this.consecutiveFailures >= MAX_RETRIES) {
       console.log(`Using fallback data for ${symbol} (mode: ${this.useFallbackMode ? 'fallback' : 'failures'})`);
       return generateFallbackQuote(symbol);
     }

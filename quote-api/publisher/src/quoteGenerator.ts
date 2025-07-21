@@ -1,17 +1,18 @@
 import type { Quote, HistoricalQuote } from "./types.js";
+import { isMarketHours } from "./utils.js";
 
 const SYMBOLS = ["MSFT", "NVDA", "TSLA", "PLTR", "ARKG", "SPY", "META", "GOOGL"];
 
-// Real market closing prices for reference (you can update these periodically)
+// Real market closing prices for reference (updated July 2025)
 const REFERENCE_PRICES: Record<string, number> = {
-  MSFT: 384.52,
-  NVDA: 892.87,
-  TSLA: 248.91,
-  PLTR: 26.84,
-  ARKG: 18.34,
-  SPY: 472.35,   // S&P 500 ETF
-  META: 512.78,  // Meta Platforms
-  GOOGL: 175.43  // Alphabet Class A
+  MSFT: 510.05,
+  NVDA: 172.41,
+  TSLA: 329.65,
+  PLTR: 153.52,
+  ARKG: 24.92,
+  SPY: 627.58,   // S&P 500 ETF
+  META: 704.28,  // Meta Platforms
+  GOOGL: 185.06  // Alphabet Class A
 };
 
 // Market state tracking for realistic behavior
@@ -20,9 +21,16 @@ const marketState = new Map<string, { lastPrice: number; trend: number; volatili
 // Initialize market state
 function initializeMarketState() {
   for (const symbol of SYMBOLS) {
+    let initialTrend = (Math.random() - 0.5) * 0.001; // Random initial trend
+    
+    // Special case: ARKG should always have a negative trend
+    if (symbol === "ARKG") {
+      initialTrend = -Math.abs(initialTrend) - 0.001; // Ensure negative trend
+    }
+    
     marketState.set(symbol, {
       lastPrice: REFERENCE_PRICES[symbol] || 100,
-      trend: (Math.random() - 0.5) * 0.001, // Random initial trend
+      trend: initialTrend,
       volatility: getVolatilityForSymbol(symbol)
     });
   }
@@ -43,21 +51,7 @@ function getVolatilityForSymbol(symbol: string): number {
   }
 }
 
-// Check if markets are likely open (rough approximation)
-function isMarketHours(): boolean {
-  const now = new Date();
-  const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-  const est = new Date(utc.getTime() + (-5 * 3600000)); // EST/EDT approximation
-  
-  const hour = est.getHours();
-  const dayOfWeek = est.getDay();
-  
-  // Weekend
-  if (dayOfWeek === 0 || dayOfWeek === 6) return false;
-  
-  // Rough market hours (9:30 AM - 4:00 PM EST)
-  return hour >= 9 && hour <= 16;
-}
+
 
 /** Generate realistic fallback quote when real data is unavailable */
 export function generateFallbackQuote(symbol?: string): Quote {
@@ -87,13 +81,22 @@ export function generateFallbackQuote(symbol?: string): Quote {
   const isOpen = isMarketHours();
   const volatilityMultiplier = isOpen ? 1.0 : 0.1; // Much less movement when markets closed
   
-  // Random walk with trend
-  const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
-  state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
-  
-  // Occasionally change trend
-  if (Math.random() < 0.05) {
-    state.trend = (Math.random() - 0.5) * 0.002;
+  // Special handling for ARKG to always decline
+  if (targetSymbol === "ARKG") {
+    // For ARKG, always apply a negative trend with some volatility
+    const negativeChange = -Math.abs(Math.random() * state.volatility * volatilityMultiplier * 0.5);
+    const negativetrend = -Math.abs(state.trend) - 0.001; // Ensure always negative trend
+    state.lastPrice = Math.max(0.01, state.lastPrice * (1 + negativeChange + negativetrend));
+    state.trend = negativetrend; // Keep the trend negative
+  } else {
+    // Random walk with trend for other stocks
+    const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
+    state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
+    
+    // Occasionally change trend for non-ARKG stocks
+    if (Math.random() < 0.05) {
+      state.trend = (Math.random() - 0.5) * 0.002;
+    }
   }
   
   const price = Math.round(state.lastPrice * 100) / 100;
@@ -133,13 +136,21 @@ export function generateFallbackHistory(symbol: string, points: number = 78): Hi
     const timestamp = now - (points - i) * interval;
     const date = new Date(timestamp);
     
-    // Simulate intraday movement
-    const change = (Math.random() - 0.5) * volatility;
-    price = Math.max(0.01, price * (1 + change));
-    
-    // Add some trend toward current price
-    const trendToTarget = (basePrice - price) * 0.001;
-    price += trendToTarget;
+    // Special handling for ARKG to show declining pattern
+    if (symbol === "ARKG") {
+      // Make ARKG consistently decline over time
+      const declineRate = 0.002; // 0.2% decline per interval on average
+      const change = -Math.abs(Math.random() * volatility) - declineRate;
+      price = Math.max(0.01, price * (1 + change));
+    } else {
+      // Simulate intraday movement for other stocks
+      const change = (Math.random() - 0.5) * volatility;
+      price = Math.max(0.01, price * (1 + change));
+      
+      // Add some trend toward current price for other stocks
+      const trendToTarget = (basePrice - price) * 0.001;
+      price += trendToTarget;
+    }
     
     const open = i === 0 ? price : history[i - 1].close;
     const high = price * (1 + Math.random() * 0.005);
