@@ -70,20 +70,27 @@ export function generateFallbackQuote(symbol?: string): Quote {
     };
   }
   
+
   // Simulate realistic price movement
   const isOpen = isMarketHours();
   const volatilityMultiplier = isOpen ? 1.0 : 0.1; // Much less movement when markets closed
-  
+
   // Random walk with trend
   const change = (Math.random() - 0.5) * state.volatility * volatilityMultiplier;
   state.lastPrice = Math.max(0.01, state.lastPrice * (1 + change + state.trend));
-  
+
   // Apply 10% constraint with bounce back behavior
   const constraintReferencePrice = REFERENCE_PRICES[targetSymbol] || 100;
   const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
   const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
-  
-  if (state.lastPrice > maxAllowedPrice) {
+
+  if (targetSymbol === "MSFT" && state.lastPrice < REFERENCE_PRICES["MSFT"]) {
+    state.lastPrice = REFERENCE_PRICES["MSFT"];
+    state.trend = Math.abs(state.trend); // force trend positive
+  } else if (targetSymbol === "ARKG" && state.lastPrice > REFERENCE_PRICES["ARKG"]) {
+    state.lastPrice = REFERENCE_PRICES["ARKG"];
+    state.trend = -Math.abs(state.trend); // force trend negative
+  } else if (state.lastPrice > maxAllowedPrice) {
     // Hit upper bound - bounce back down
     state.lastPrice = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
     state.trend = -Math.abs(state.trend); // Force trend negative for bounce
@@ -135,16 +142,21 @@ export function generateFallbackHistory(symbol: string, points: number = 78): Hi
     const timestamp = now - (points - i) * interval;
     const date = new Date(timestamp);
     
+
     // Simulate intraday movement
     const change = (Math.random() - 0.5) * volatility;
     price = Math.max(0.01, price * (1 + change));
-    
+
     // Apply 10% constraint with bounce back behavior for historical data
     const constraintReferencePrice = REFERENCE_PRICES[symbol] || 100;
     const maxAllowedPrice = constraintReferencePrice * 1.10; // +10%
     const minAllowedPrice = constraintReferencePrice * 0.90; // -10%
-    
-    if (price > maxAllowedPrice) {
+
+    if (symbol === "MSFT" && price < REFERENCE_PRICES["MSFT"]) {
+      price = REFERENCE_PRICES["MSFT"];
+    } else if (symbol === "ARKG" && price > REFERENCE_PRICES["ARKG"]) {
+      price = REFERENCE_PRICES["ARKG"];
+    } else if (price > maxAllowedPrice) {
       // Hit upper bound - bounce back down
       price = maxAllowedPrice - (Math.random() * 0.02 * constraintReferencePrice); // Bounce back 0-2%
     } else if (price < minAllowedPrice) {
